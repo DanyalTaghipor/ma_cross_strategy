@@ -1,0 +1,84 @@
+---
+version: "3.4"
+networks:
+  freq_net:
+    external: true
+
+x-shared-deploy: &default-deploy
+  mode: replicated
+  replicas: 1
+  placement:
+    constraints:
+      - node.role == manager
+  restart_policy:
+    condition: on-failure
+    delay: 5s
+
+services:
+  plotter:
+    image: danytgh/plotter:latest
+
+    deploy:
+      <<: *default-deploy
+
+    volumes:
+      - "./static:/app/static"
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.plotter.entrypoints=http"
+      - "traefik.http.routers.plotter.rule=Host(`crossma.plotter.localhost`)"
+      - "traefik.http.services.plotter.loadbalancer.server.port=8000"
+      - "traefik.http.services.plotter.loadbalancer.sticky.cookie.name=crossmaplotter"
+    networks:
+      - freq_net
+    env_file:
+      - ./secrets.env
+      
+  freqtrade:
+    image: freqtradeorg/freqtrade:develop_plot
+    # image: freqtradeorg/freqtrade:stable
+    # image: freqtradeorg/freqtrade:develop
+    # Use plotting image
+    # image: freqtradeorg/freqtrade:develop_plot
+    # # Enable GPU Image and GPU Resources (only relevant for freqAI)
+    # # Make sure to uncomment the whole deploy section
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    # Build step - only needed when additional dependencies are needed
+    # build:
+    #   context: .
+    #   dockerfile: "./docker/Dockerfile.custom"
+    deploy:
+      <<: *default-deploy
+
+    volumes:
+      - "./user_data:/freqtrade/user_data"
+      - "./shared:/freqtrade/shared"
+    # Expose api on port 8080 (localhost only)
+    # Please read the https://www.freqtrade.io/en/stable/rest-api/ documentation
+    # for more information.
+    # # Default command used when running `docker compose up`
+    # # Default command used when running `docker compose up`
+    environment:
+      - PYTHONPATH=/freqtrade
+    command: >
+      trade
+      --logfile /freqtrade/user_data/logs/freqtrade.log
+      --db-url sqlite:////freqtrade/user_data/tradesv3.sqlite
+      --config /freqtrade/user_data/config.json
+      --strategy MACross
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.freqcrossma.entrypoints=http"
+      - "traefik.http.routers.freqcrossma.rule=Host(`crossma.freq.localhost`)"
+      - "traefik.http.services.freqcrossma.loadbalancer.server.port=8080"
+      - "traefik.http.services.freqcrossma.loadbalancer.sticky.cookie.name=crossmafreq"
+    networks:
+      - freq_net
