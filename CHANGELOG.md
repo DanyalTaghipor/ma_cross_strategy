@@ -2,6 +2,13 @@
 
 
 
+## v0.1.0 (2023-10-14)
+
+### Feature
+
+* feat(init): init project ([`11a76cc`](https://github.com/tradefreq/ma_cross_strategy/commit/11a76cc5d5e6ee808b5f8a62e219853dcd38ec5d))
+
+
 ## v0.0.0 (2023-10-14)
 
 ### Unknown
