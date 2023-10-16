@@ -2,6 +2,16 @@
 
 
 
+## v0.2.0 (2023-10-16)
+
+### Feature
+
+* feat(plotter): remove plotter as a dependent service.
+now to use plotter, we should run it in stack mode as different service
+
+BREAKING CHANGE: remove plotter as a dependent service. ([`000837f`](https://github.com/tradefreq/ma_cross_strategy/commit/000837f428a824bf369e872a33bc1edce39aee75))
+
+
 ## v0.1.0 (2023-10-14)
 
 ### Feature
