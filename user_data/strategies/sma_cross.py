@@ -18,7 +18,7 @@ from shared.custom_classes import CustomSender
 
 
 # This class is a sample. Feel free to customize it.
-class MACross(IStrategy):
+class SMACross(IStrategy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.custom_notif = CustomSender()
@@ -43,19 +43,17 @@ class MACross(IStrategy):
     INTERFACE_VERSION = 3
 
     # Can this strategy go short?
-    can_short: bool = True
+    can_short: bool = False
 
     # Minimal ROI designed for the strategy.
     # This attribute will be overridden if the config file contains "minimal_roi".
     minimal_roi = {
-        "60": 0.01,
-        "30": 0.02,
-        "0": 0.04
+        "0": 0.3
     }
 
     # Optimal stoploss designed for the strategy.
     # This attribute will be overridden if the config file contains "stoploss".
-    stoploss = -0.10
+    stoploss = -1
 
     # Trailing stoploss
     trailing_stop = False
@@ -64,7 +62,7 @@ class MACross(IStrategy):
     # trailing_stop_positive_offset = 0.0  # Disabled / not configured
 
     # Optimal timeframe for the strategy.
-    timeframe = '1m'
+    timeframe = '15m'
 
     # Run "populate_indicators()" only for new candle.
     process_only_new_candles = True
@@ -74,11 +72,10 @@ class MACross(IStrategy):
     exit_profit_only = False
     ignore_roi_if_entry_signal = False
 
-    short_ma_len = 3
-    long_ma_len = 6
+    sma_len = 20
 
     # Number of candles the strategy requires before producing valid signals
-    startup_candle_count: int = long_ma_len + short_ma_len
+    startup_candle_count: int = sma_len
 
     # Plot Length
     plot_candle_count = 30
@@ -108,8 +105,7 @@ class MACross(IStrategy):
 
     telegram_plot_config = {
         'main_plot': {
-            'short_ma': {'color': 'blue'},
-            'long_ma': {'color': 'red'}
+            'sma': {'color': 'blue'}
         }
     }
 
@@ -139,24 +135,7 @@ class MACross(IStrategy):
         :return: a Dataframe with all mandatory indicators for the strategies
         """
 
-        dataframe['short_ma'] = ta.EMA(dataframe, timeperiod=self.short_ma_len)
-        dataframe['long_ma'] = ta.EMA(dataframe, timeperiod=self.long_ma_len)
-
-        dataframe['long_trades'] = np.nan
-        dataframe['short_trades'] = np.nan
-
-        dataframe.loc[
-            (
-                qtpylib.crossed_above(dataframe['short_ma'], dataframe['long_ma'])
-
-            ),
-            'long_trades'] = 1
-
-        dataframe.loc[
-            (
-                qtpylib.crossed_below(dataframe['short_ma'], dataframe['long_ma'])
-            ),
-            'short_trades'] = 1
+        dataframe['sma'] = ta.EMA(dataframe, timeperiod=self.sma_len)
 
         return dataframe
 
@@ -170,37 +149,21 @@ class MACross(IStrategy):
 
         dataframe.loc[
             (
-                (dataframe['long_trades'] == 1)
+                (dataframe['close'] > dataframe['close'].shift(1)) &
+                qtpylib.crossed_above(dataframe['close'].shift(1), dataframe['sma'].shift(1)) &
+                (dataframe['high'].shift(2) < dataframe['sma'].shift(2))
+
             ),
             'enter_long'] = 1
 
         if dataframe['enter_long'].iloc[-1] == 1:
+            metadata['strategy_name'] = f"{self.__class__.__name__} ({self.sma_len})"
+            metadata['timeframe'] = self.timeframe
             data = dataframe.tail(self.plot_candle_count)
-            entry_markers = {
-                "data": [round(value, 7) for value in
-                         data['close'].where(data['enter_long'] == 1, other=np.nan).tolist()],
-                "color": 'green'}
 
             self.custom_notif.send_custom_message(self.dp, data, metadata,
                                                   plot_config=self.telegram_plot_config,
-                                                  markers={"entry": entry_markers})
-
-        dataframe.loc[
-            (
-                (dataframe['short_trades'] == 1)
-            ),
-            'enter_short'] = 1
-
-        if dataframe['enter_short'].iloc[-1] == 1:
-            data = dataframe.tail(self.plot_candle_count)
-            entry_markers = {
-                "data": [round(value, 7) for value in
-                         data['close'].where(data['enter_short'] == 1, other=np.nan).tolist()],
-                "color": 'red'}
-
-            self.custom_notif.send_custom_message(self.dp, data, metadata,
-                                                  plot_config=self.telegram_plot_config,
-                                                  markers={"entry": entry_markers})
+                                                  markers=None)
 
 
         return dataframe
