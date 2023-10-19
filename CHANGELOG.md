@@ -2,6 +2,17 @@
 
 
 
+## v1.0.0 (2023-10-19)
+
+### Breaking
+
+* fix(SMA): redefine the rules of cross ma strategy
+
+the previous version, was based on crossing two ma&#39;s but now it it different!
+
+BREAKING CHANGE: new version of sma based on babak&#39;s definition ([`4fa04e8`](https://github.com/tradefreq/ma_cross_strategy/commit/4fa04e828c63457f524fed460d26117c9489ee50))
+
+
 ## v0.2.0 (2023-10-16)
 
 ### Feature
