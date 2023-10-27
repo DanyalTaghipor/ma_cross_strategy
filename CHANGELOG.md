@@ -2,6 +2,13 @@
 
 
 
+## v1.1.0 (2023-10-27)
+
+### Feature
+
+* feat(cross_ma_config): add rate limit to avoid ddos protection error ([`1278017`](https://github.com/tradefreq/ma_cross_strategy/commit/12780173cd927a04904cb2ed371424cae8467b96))
+
+
 ## v1.0.0 (2023-10-19)
 
 ### Breaking
